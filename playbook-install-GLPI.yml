@@ -1,0 +1,4 @@
+---
+- hosts: '{{ target_hosts | default("target_servers") }}'
+  roles:
+  - GLPI
