@@ -1,1 +1,39 @@
+---
+# tasks file for roles/Rapid7
+- block: 
+  - debug:
+      msg: Start Rapid7 Deploy Process on All Linux Clients
+  - name: Remove old Rapid7 installer
+    ansible.builtin.shell: rm -rf /tmp/agent_installer-x86_64*
+  - name: Download Rapid7 Installer
+    ansible.builtin.get_url:
+      url: http://128.224.97.52/Apps/rapid7/agent_installer-x86_64.sh
+      dest: /tmp/agent_installer-x86_64.sh
+      mode: '0777'
+  - name: Install the latest version of tar
+    ansible.builtin.dnf:
+      name: tar
+      state: latest
+    when: ansible_distribution == 'Rocky'
+  - name: Run installer 
+    ansible.builtin.shell: 
+      chdir: /tmp/
+      cmd: /bin/bash /tmp/agent_installer-x86_64.sh install_start --token us:b62ac28e-154e-49df-abc7-a8ec5d21de41
+  - name: Start service ir_agent, if not started
+    ansible.builtin.service:
+      name: ir_agent
+      state: started
+      enabled: yes
+  - name: Remove installer 
+    ansible.builtin.shell: 
+      chdir: /tmp/
+      cmd: rm -f /tmp/agent_installer-x86_64.sh
+  ignore_errors: true
+
+- name: check rapid7 status
+  ansible.builtin.shell:
+    cmd: systemctl status ir_agent
+  register: rapid7status
+- debug:
+    msg: "{{ rapid7status }}"
 
