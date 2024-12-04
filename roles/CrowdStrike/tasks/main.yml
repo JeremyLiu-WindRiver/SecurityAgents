@@ -1,0 +1,92 @@
+---
+# tasks file for roles/CrowdStrike
+- block:
+  - debug:
+      msg: Start CrowdStrike Deploy Process on Ubuntu Clients
+  - name: Remove old CrowdStrike installer
+    ansible.builtin.shell: rm -rf /tmp/falcon-sensor*
+  - name: Download CrowdStrike Installer
+    ansible.builtin.get_url:
+      url: http://128.224.97.52/Apps/crowdstrike/Ubuntu/falcon-sensor_amd64.deb
+      dest: /tmp/falcon-sensor_amd64.deb
+      mode: '0777'
+  - name: Run installer 
+    ansible.builtin.shell: 
+      chdir: /tmp/
+      cmd: dpkg -i /tmp/falcon-sensor_amd64.deb
+  - name: Run installer 
+    ansible.builtin.shell:
+      chdir: /opt/CrowdStrike/
+      cmd: /opt/CrowdStrike/falconctl -s -f --cid=C4DAAD9A9F0E4CDA9E3517BECCCD7EA8-E1      
+  - name: Start service falcon-sensor, if not started
+    ansible.builtin.service:
+      name: falcon-sensor
+      state: started
+      enabled: yes  
+  - name: Remove installer 
+    ansible.builtin.shell: 
+      chdir: /tmp/
+      cmd: rm -f /tmp/falcon-sensor*
+  when: ansible_distribution == 'Ubuntu' or ansible_distribution == 'Debian' or ansible_distribution == 'eLxr Linux'
+  ignore_errors: true
+
+- block:
+  - debug:
+      msg: Start CrowdStrike Deploy Process on CentOS Clients
+  - name: Install the latest version of libnl
+    ansible.builtin.yum:
+      name: libnl
+      state: latest  
+  - name: Remove old installer
+    ansible.builtin.shell: rm -rf /tmp/falcon-sensor*
+  - name: Download CrowdStrike Installer for RHEL6
+    ansible.builtin.get_url:
+      url: http://128.224.97.52/Apps/crowdstrike/RHEL6/falcon-sensor.x86_64.rpm
+      dest: /tmp/falcon-sensor.x86_64.rpm
+      mode: '0777'
+    when: ansible_distribution_major_version == '6'
+  - name: Download CrowdStrike Installer for RHEL7
+    ansible.builtin.get_url:
+      url: http://128.224.97.52/Apps/crowdstrike/RHEL7/falcon-sensor.x86_64.rpm
+      dest: /tmp/falcon-sensor.x86_64.rpm
+      mode: '0777'
+    when: ansible_distribution_major_version == '7'
+  - name: Download CrowdStrike Installer for RHEL8
+    ansible.builtin.get_url:
+      url: http://128.224.97.52/Apps/crowdstrike/RHEL8/falcon-sensor.x86_64.rpm
+      dest: /tmp/falcon-sensor.x86_64.rpm
+      mode: '0777'
+    when: ansible_distribution_major_version == '8'
+  - name: Download CrowdStrike Installer for RHEL9
+    ansible.builtin.get_url:
+      url: http://128.224.97.52/Apps/crowdstrike/RHEL9/falcon-sensor.x86_64.rpm
+      dest: /tmp/falcon-sensor.x86_64.rpm
+      mode: '0777'
+    when: ansible_distribution_major_version == '9'
+
+  - name: Run installer
+    ansible.builtin.shell:
+      chdir: /tmp/
+      cmd: rpm -ivh /tmp/falcon-sensor.x86_64.rpm
+  - name: Configure CID
+    ansible.builtin.shell:
+      chdir: /opt/CrowdStrike/
+      cmd: /opt/CrowdStrike/falconctl -s -f --cid=C4DAAD9A9F0E4CDA9E3517BECCCD7EA8-E1
+  - name: Start service falcon-sensor, if not started
+    ansible.builtin.service:
+      name: falcon-sensor
+      state: started
+      enabled: yes
+  - name: Remove installer
+    ansible.builtin.shell:
+      chdir: /tmp/
+      cmd: rm -f /tmp/falcon-sensor*
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat' or ansible_distribution == 'Rocky'
+  ignore_errors: true
+
+- name: check CrowdStrike status
+  ansible.builtin.shell:
+    cmd: systemctl status falcon-sensor
+  register: CSstatus
+- debug:
+    msg: "{{ CSstatus }}"
