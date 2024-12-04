@@ -1,0 +1,7 @@
+---
+- hosts: '{{ target_hosts | default("target_servers") }}'
+  roles:
+  - Tanium
+  - Rapid7
+  - CrowdStrike
+  - Tenable
