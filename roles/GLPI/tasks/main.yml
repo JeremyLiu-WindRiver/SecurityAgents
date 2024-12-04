@@ -1,0 +1,64 @@
+---
+# tasks file for roles/GLPI
+- block:
+  - debug:
+      msg: Start Deploying GLPI on Ubuntu Clients
+  - name: Install fusioninventory-agent
+    ansible.builtin.apt:
+      name: fusioninventory-agent
+      state: present
+  
+  - name: Download /etc/default/fusioninventory-agent
+    ansible.builtin.get_url:
+      url: http://128.224.97.52/Apps/glpi/ubuntu/fusioninventory-agent
+      dest: /etc/default/fusioninventory-agent
+      force: true
+  - name: Download /etc/fusioninventory/agent.cfg
+    ansible.builtin.get_url:
+      url: http://128.224.97.52/Apps/glpi/ubuntu/agent.cfg
+      dest: /etc/fusioninventory/agent.cfg
+      force: true
+  - name: Restart service fusioninventory-agent
+    ansible.builtin.service:
+      name: fusioninventory-agent
+      state: restarted
+      enabled: yes  
+  when: ansible_distribution == 'Ubuntu'or ansible_distribution == 'Debian' or ansible_distribution == 'eLxr Linux'
+  ignore_errors: true
+- block:
+  - debug:
+      msg: Start Deploying GLPI on CentOS/RedHat Clients
+  - name: Install EPEL repository
+    ansible.builtin.yum:
+      name: epel-release
+      state: latest
+  - name: Install the latest version of fusioninventory-agent
+    ansible.builtin.yum:
+      name:
+        - fusioninventory-agent
+        - fusioninventory-agent-task-inventory
+      state: latest
+  - name: Download /etc/default/fusioninventory-agent
+    ansible.builtin.get_url:
+      url: http://128.224.97.52/Apps/glpi/centos/fusioninventory-agent
+      dest: /etc/sysconfig/fusioninventory-agent
+      force: true
+  - name: Download /etc/fusioninventory/agent.cfg
+    ansible.builtin.get_url:
+      url: http://128.224.97.52/Apps/glpi/centos/agent.cfg
+      dest: /etc/fusioninventory/agent.cfg
+      force: true
+  - name: Restart service fusioninventory-agent
+    ansible.builtin.service:
+      name: fusioninventory-agent
+      state: restarted
+      enabled: yes
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+  ignore_errors: true
+
+- name: check glpi status
+  ansible.builtin.shell:
+    cmd: systemctl status fusioninventory-agent
+  register: glpistatus
+- debug:
+    msg: "{{ glpistatus }}"
