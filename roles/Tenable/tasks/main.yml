@@ -1,0 +1,104 @@
+---
+# tasks file for roles/Tenable
+- block:
+  - debug:
+      msg: Start Deploying Nessus on Ubuntu Clients
+  - name: Remove old installer
+    ansible.builtin.shell: rm -rf /tmp/NessusAgent*
+  - name: Download NessusAgent Installer
+    ansible.builtin.get_url:
+      url: http://128.224.97.52/Apps/NessusAgent/NessusAgent-ubuntu_amd64.deb
+      dest: /tmp/NessusAgent-ubuntu_amd64.deb
+      mode: '0777'
+  - name: Run installer 
+    ansible.builtin.shell: 
+      chdir: /tmp/
+      cmd: dpkg -i /tmp/NessusAgent-ubuntu_amd64.deb
+  - name: Configure nessuscli 
+    ansible.builtin.shell:
+      chdir: /opt/nessus_agent/
+      cmd: /opt/nessus_agent/sbin/nessuscli agent link --key=b69dc60e7a983fa30a7227865ae73ac30f0b64358b6476549b8f326931aa8f7c --groups="Linux Clients" --host=cloud.tenable.com --port=443
+  - block:
+    - name: Retart service nessusagent
+      ansible.builtin.service:
+        name: nessusagent
+        state: restarted
+        enabled: yes  
+    rescue:
+    - name: Restart service nessusd
+      ansible.builtin.service:
+        name: nessusd
+        state: restarted
+        enabled: yes  
+  - name: Remove installer 
+    ansible.builtin.shell: 
+      chdir: /tmp/
+      cmd: rm -f /tmp/NessusAgent*
+  when: ansible_distribution == 'Ubuntu' or ansible_distribution == 'Debian' or ansible_distribution == 'eLxr Linux'
+  ignore_errors: true
+
+- block:
+  - debug:
+      msg: Start Deploying Nessus on CentOS Clients
+  - name: Remove old installer
+    ansible.builtin.shell: rm -rf /tmp/NessusAgent*
+  - name: Download NessusAgent Installer for RHEL6
+    ansible.builtin.get_url:
+      url: http://128.224.97.52/Apps/NessusAgent/NessusAgent-es6.x86_64.rpm
+      dest: /tmp/NessusAgent.x86_64.rpm
+      mode: '0777'
+    when: ansible_distribution_major_version == '6'
+
+  - name: Download NessusAgent Installer for RHEL9
+    ansible.builtin.get_url:
+      url: http://128.224.97.52/Apps/NessusAgent/NessusAgent-es9.x86_64.rpm
+      dest: /tmp/NessusAgent.x86_64.rpm
+      mode: '0777'
+    when: ansible_distribution_major_version == '9'
+
+  - name: Download NessusAgent Installer for RHEL7
+    ansible.builtin.get_url:
+      url: http://128.224.97.52/Apps/NessusAgent/NessusAgent-es7.x86_64.rpm
+      dest: /tmp/NessusAgent.x86_64.rpm
+      mode: '0777'
+    when: ansible_distribution_major_version == '7'
+
+  - name: Download NessusAgent Installer for RHEL8
+    ansible.builtin.get_url:
+      url: http://128.224.97.52/Apps/NessusAgent/NessusAgent-es8.x86_64.rpm
+      dest: /tmp/NessusAgent.x86_64.rpm
+      mode: '0777'
+    when: ansible_distribution_major_version == '8'
+
+  - name: Run installer
+    ansible.builtin.shell:
+      chdir: /tmp/
+      cmd: rpm -ivh /tmp/NessusAgent.x86_64.rpm
+  - name: Configure nessuscli
+    ansible.builtin.shell:
+      chdir: /opt/nessus_agent/sbin/
+      cmd: /opt/nessus_agent/sbin/nessuscli agent link --key=b69dc60e7a983fa30a7227865ae73ac30f0b64358b6476549b8f326931aa8f7c --groups="Linux Clients" --host=cloud.tenable.com --port=443
+  - name: Restart service nessusagent
+    ansible.builtin.service:
+      name: nessusagent
+      state: restarted
+      enabled: yes
+  - name: Remove installer
+    ansible.builtin.shell:
+      chdir: /tmp/
+      cmd: rm -f /tmp/NessusAgent.x86_64.rp
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat' or ansible_distribution == 'Rocky'
+  ignore_errors: true
+
+- block:
+  - name: check nessusagent status
+    ansible.builtin.shell:
+      cmd: systemctl status nessusagent
+    register: nessusstatus
+  rescue:  
+  - name: check nessusd status
+    ansible.builtin.shell:
+      cmd: systemctl status nessusd
+    register: nessusstatus
+- debug:
+    msg: "{{ nessusstatus }}"
