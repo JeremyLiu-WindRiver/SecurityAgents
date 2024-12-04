@@ -1,0 +1,37 @@
+---
+# tasks file for roles/Tanium
+- block:
+  - name: Remove old installer
+    ansible.builtin.shell: rm -rf /tmp/linux-client-bundle*
+  - name: Download Tanium Installer
+    ansible.builtin.get_url:
+      url: http://128.224.97.52/Apps/linux-client-bundle.zip
+      dest: /tmp/linux-client-bundle.zip
+  - name: Install the latest version of unzip - CentOS
+    ansible.builtin.yum:
+      name: unzip
+      state: latest
+    when: ansible_distribution == 'CentOS' or ansible_distribution == 'Rocky'
+  - name: Install the latest version of unzip - Ubuntu
+    ansible.builtin.apt:
+      name: unzip
+      state: present
+    when: ansible_distribution == 'Ubuntu'
+  - name: Unzip Installer
+    ansible.builtin.shell: unzip -q /tmp/linux-client-bundle.zip -d /tmp/
+
+  - name: Add excute permission to install.sh
+    ansible.builtin.shell: chmod +x /tmp/linux-client-bundle/install.sh
+
+  - name: Change the working directory to /tmp/linux-client-bundle before executing install.sh
+    ansible.builtin.shell: 
+      chdir: /tmp/linux-client-bundle/
+      cmd: /tmp/linux-client-bundle/install.sh
+  ignore_errors: true
+
+- name: check Tanium status
+  ansible.builtin.shell:
+    cmd: systemctl status taniumclient
+  register: taniumstatus
+- debug:
+    msg: "{{ taniumstatus }}"
