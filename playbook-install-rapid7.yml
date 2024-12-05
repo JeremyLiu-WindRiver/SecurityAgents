@@ -1,4 +1,4 @@
 ---
-- hosts: '{{ target_hosts | default("target_servers") }}'
+- hosts: all
   roles:
   - Rapid7
